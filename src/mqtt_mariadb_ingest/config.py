@@ -86,7 +86,7 @@ def load_config() -> AppConfig:
         mqtt_port=_env_int("MQTT_PORT", 1883),
         mqtt_username=os.environ.get("MQTT_USERNAME") or None,
         mqtt_password=os.environ.get("MQTT_PASSWORD") or None,
-        mqtt_topic=os.environ.get("MQTT_TOPIC", "home/OpenMQTTGateway_ESP32C3_DKC02/BTtoMQTT/#"),
+        mqtt_topic=os.environ.get("MQTT_TOPIC", "home/+/BTtoMQTT/#"),
         mqtt_client_id=os.environ.get("MQTT_CLIENT_ID", "mqtt-mariadb-ingest"),
         mariadb_host=os.environ.get("MARIADB_HOST", "192.168.178.100"),
         mariadb_port=_env_int("MARIADB_PORT", 3306),
@@ -107,4 +107,3 @@ def load_config() -> AppConfig:
         log_level=os.environ.get("LOG_LEVEL", "INFO"),
         rooms=rooms,
     )
-

@@ -5,7 +5,7 @@ Ingests SwitchBot readings published by OpenMQTTGateway into MariaDB.
 The current implementation is configured for shadow-table migration:
 
 - MQTT broker: `192.168.178.100:1883`
-- MQTT topic: `home/OpenMQTTGateway_ESP32C3_DKC02/BTtoMQTT/#`
+- MQTT topic: `home/+/BTtoMQTT/#`
 - MariaDB tables: `sensor_data_mqtt_shadow`, `alarms_mqtt_shadow`
 - Write interval: 5 minutes
 - Write policy: latest valid reading per room per interval

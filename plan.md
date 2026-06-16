@@ -100,8 +100,10 @@ auth: username and password required
 Topic pattern:
 
 ```text
-home/OpenMQTTGateway_ESP32C3_DKC02/BTtoMQTT/<device-id-without-colons>
+home/+/BTtoMQTT/<device-id-without-colons>
 ```
+
+The `+` wildcard allows multiple OpenMQTTGateway ESP32 devices to publish readings for the same sensors. The ingestion service maps readings by sensor `id`, so the gateway name does not need to be fixed.
 
 Confirmed messages:
 
@@ -329,7 +331,7 @@ Known values:
 ```text
 MQTT_HOST=192.168.178.100
 MQTT_PORT=1883
-MQTT_TOPIC=home/OpenMQTTGateway_ESP32C3_DKC02/BTtoMQTT/#
+MQTT_TOPIC=home/+/BTtoMQTT/#
 WRITE_INTERVAL_SECONDS=300
 FRESHNESS_THRESHOLD_MINUTES=15
 BATTERY_LOWER_LIMIT=20

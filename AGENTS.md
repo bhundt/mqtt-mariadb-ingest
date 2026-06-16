@@ -30,7 +30,7 @@ Confirmed runtime facts:
 
 - Mosquitto: `192.168.178.100:1883`
 - Mosquitto authentication: username and password required
-- MQTT topic: `home/OpenMQTTGateway_ESP32C3_DKC02/BTtoMQTT/#`
+- MQTT topic: `home/+/BTtoMQTT/#`
 - Write interval: 5 minutes, using latest valid reading per room within the interval
 - Initial DB target: shadow tables, not production tables
 - Deployment/build target: plain Docker daemon on nas02 via `DOCKER_CONTEXT=nas02`; do not assume Docker Compose is available
