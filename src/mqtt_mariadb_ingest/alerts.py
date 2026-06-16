@@ -1,0 +1,88 @@
+from __future__ import annotations
+
+from typing import Protocol
+
+from .models import AlertEvent, RoomConfig, SensorReading
+
+
+class AlarmStore(Protocol):
+    def get_latest_alarm_state(self, room: str, metric: str) -> str | None:
+        ...
+
+    def set_alarm_state(self, room: str, metric: str, alarm_state: str) -> None:
+        ...
+
+
+class Notifier(Protocol):
+    def send(self, message: str, title: str = "", is_warning: bool = False) -> None:
+        ...
+
+
+class AlarmEvaluator:
+    def __init__(
+        self,
+        rooms: tuple[RoomConfig, ...],
+        battery_lower_limit: float,
+        store: AlarmStore,
+        notifier: Notifier,
+    ):
+        self.rooms = {room.name: room for room in rooms}
+        self.battery_lower_limit = battery_lower_limit
+        self.store = store
+        self.notifier = notifier
+
+    def evaluate(self, readings: list[SensorReading]) -> list[AlertEvent]:
+        events: list[AlertEvent] = []
+        for reading in readings:
+            room = self.rooms.get(reading.room)
+            if room is None:
+                continue
+            events.extend(
+                [
+                    self._transition_event(
+                        reading.room,
+                        "battery",
+                        reading.battery_level < self.battery_lower_limit,
+                        f"Low battery level in {reading.room}: {reading.battery_level:g}%",
+                        f"Battery level back to normal in {reading.room}: {reading.battery_level:g}% 🥳",
+                    ),
+                    self._transition_event(
+                        reading.room,
+                        "temperature",
+                        reading.temperature < room.temp_lower_limit,
+                        f"Low temperature in {reading.room}: {reading.temperature:g}°C",
+                        f"Temperature back to normal in {reading.room}: {reading.temperature:g}°C 🥳",
+                    ),
+                    self._transition_event(
+                        reading.room,
+                        "humidity",
+                        reading.humidity > room.humidity_upper_limit,
+                        f"High humidity in {reading.room}: {reading.humidity:g}%",
+                        f"Humidity back to normal in {reading.room}: {reading.humidity:g}% 🥳",
+                    ),
+                ]
+            )
+        return [event for event in events if event is not None]
+
+    def _transition_event(
+        self,
+        room: str,
+        metric: str,
+        in_alarm: bool,
+        alarm_message: str,
+        recovery_message: str,
+    ) -> AlertEvent | None:
+        new_state = "ALARM" if in_alarm else "OK"
+        old_state = self.store.get_latest_alarm_state(room, metric)
+
+        if new_state == "ALARM" and old_state in {"OK", None}:
+            self.store.set_alarm_state(room, metric, new_state)
+            self.notifier.send(alarm_message, "Wohnung", True)
+            return AlertEvent(room, metric, new_state, alarm_message, True)
+
+        if new_state == "OK" and old_state == "ALARM":
+            self.store.set_alarm_state(room, metric, new_state)
+            self.notifier.send(recovery_message, "Wohnung", False)
+            return AlertEvent(room, metric, new_state, recovery_message, False)
+
+        return None

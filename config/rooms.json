@@ -1,0 +1,47 @@
+{
+  "rooms": [
+    {
+      "name": "Living Room",
+      "mqtt_ids": ["C1:34:30:37:35:3D"],
+      "device_type": "Meter Plus",
+      "temp_lower_limit": 18.0,
+      "humidity_upper_limit": 60.0
+    },
+    {
+      "name": "Bedroom",
+      "mqtt_ids": ["CD:34:30:37:22:11"],
+      "device_type": "Meter Plus",
+      "temp_lower_limit": 18.0,
+      "humidity_upper_limit": 60.0
+    },
+    {
+      "name": "Kitchen",
+      "mqtt_ids": ["D1:34:30:37:57:58"],
+      "device_type": "Meter Plus",
+      "temp_lower_limit": 18.0,
+      "humidity_upper_limit": 60.0
+    },
+    {
+      "name": "Study",
+      "mqtt_ids": ["CF:34:30:37:2A:78"],
+      "device_type": "Meter Plus",
+      "temp_lower_limit": 18.0,
+      "humidity_upper_limit": 60.0
+    },
+    {
+      "name": "Bathroom",
+      "mqtt_ids": ["CA:5F:44:06:0D:6D"],
+      "device_type": "Outdoor Meter",
+      "temp_lower_limit": 20.0,
+      "humidity_upper_limit": 65.0
+    },
+    {
+      "name": "Outdoor",
+      "mqtt_ids": ["CA:5F:45:46:46:24"],
+      "device_type": "Outdoor Meter",
+      "temp_lower_limit": -20.0,
+      "humidity_upper_limit": 100.0
+    }
+  ]
+}
+

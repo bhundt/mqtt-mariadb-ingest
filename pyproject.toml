@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mqtt-mariadb-ingest"
+version = "0.1.0"
+description = "Ingest OpenMQTTGateway SwitchBot readings into MariaDB."
+requires-python = ">=3.11"
+dependencies = [
+    "paho-mqtt==2.1.0",
+    "PyMySQL==1.1.2",
+    "requests==2.32.3",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
