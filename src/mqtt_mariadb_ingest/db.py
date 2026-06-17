@@ -179,3 +179,13 @@ class MariaDbClient:
                 return result[0] if result else None
         finally:
             conn.close()
+
+    def get_current_timestamp(self) -> datetime:
+        conn = self.connect()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT NOW()")
+                result = cursor.fetchone()
+                return result[0]
+        finally:
+            conn.close()

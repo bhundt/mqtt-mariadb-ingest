@@ -146,6 +146,7 @@ class IngestionService:
 
     def flush_once(self) -> None:
         now = datetime.now()
+        db_now = self.db.get_current_timestamp()
         readings, missing_rooms = self.cache.snapshot(
             self.config.reading_max_age_seconds,
             now,
@@ -160,7 +161,7 @@ class IngestionService:
             self.logger.error(message)
 
         if readings:
-            self.db.insert_readings(readings, now)
+            self.db.insert_readings(readings, db_now)
             self.logger.info(
                 "Inserted %d readings into %s",
                 len(readings),
@@ -168,7 +169,7 @@ class IngestionService:
             )
             self.alarm_evaluator.evaluate(readings)
 
-        self._check_freshness(now)
+        self._check_freshness(db_now)
 
     def _check_freshness(self, now: datetime) -> None:
         latest_timestamp = self.db.get_latest_sensor_timestamp()

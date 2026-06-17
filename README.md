@@ -10,6 +10,7 @@ The current implementation is configured for shadow-table migration:
 - Write interval: 5 minutes
 - Write policy: latest valid reading per room per interval
 - Extra MQTT-only measurement: `rssi`, stored as nullable `DOUBLE`
+- Insert timestamps use MariaDB server time via `SELECT NOW()`
 
 ## Local Setup
 

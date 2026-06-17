@@ -97,6 +97,7 @@ The new service must preserve:
 - Completeness checks for all configured rooms.
 - Freshness checks using the current 15 minute threshold.
 - Shared timestamp semantics for rows written in one logical batch.
+- MQTT ingestion uses MariaDB server time from `SELECT NOW()` for batch timestamps.
 
 ## Database Schema
 

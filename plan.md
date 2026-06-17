@@ -81,7 +81,7 @@ The old production table may not yet have `rssi`. Adding it is a non-destructive
 Current insert behavior:
 
 - `sensor_data`: one row per room per scan cycle.
-- `timestamp`: generated once per cycle and reused for all readings in that cycle.
+- `timestamp`: generated once per cycle and reused for all readings in that cycle. The MQTT service uses MariaDB server time via `SELECT NOW()` so container timezone differences do not shift production data.
 - `alarms`: one row only when a room/metric alarm state changes.
 - `rssi`: available for MQTT-derived rows; old Raspberry Pi rows can remain `NULL`.
 
