@@ -8,7 +8,7 @@ from threading import Event
 
 import paho.mqtt.client as mqtt
 
-from .alerts import AlarmEvaluator
+from .alerts import AlarmEvaluator, MissingDataNotifier
 from .cache import ReadingCache
 from .config import AppConfig, load_config
 from .db import MariaDbClient
@@ -36,6 +36,12 @@ class IngestionService:
             self.db,
             self.notifier,
         )
+        self.missing_data_notifier = MissingDataNotifier(
+            config.notification_threshold_seconds,
+            self.notifier,
+        )
+        self._freshness_problem_since: datetime | None = None
+        self._freshness_notified = False
         self.mqtt_client = self._build_mqtt_client()
 
     @staticmethod
@@ -153,12 +159,19 @@ class IngestionService:
         )
 
         if missing_rooms:
-            message = (
-                f"Data incomplete: only {len(readings)} devices found. "
-                f"Missing data for {missing_rooms}"
+            self.logger.warning(
+                "Data incomplete: only %d devices found. Missing data for %s",
+                len(readings),
+                missing_rooms,
             )
-            self.notifier.send(message)
-            self.logger.error(message)
+
+        missing_message = self.missing_data_notifier.evaluate(
+            missing_rooms,
+            len(readings),
+            now,
+        )
+        if missing_message:
+            self.logger.error(missing_message)
 
         if readings:
             self.db.insert_readings(readings, db_now)
@@ -169,14 +182,16 @@ class IngestionService:
             )
             self.alarm_evaluator.evaluate(readings)
 
-        self._check_freshness(db_now)
+        if len(missing_rooms) < len(self.config.rooms):
+            self._check_freshness(db_now)
 
     def _check_freshness(self, now: datetime) -> None:
         latest_timestamp = self.db.get_latest_sensor_timestamp()
         if latest_timestamp is None:
-            message = f"No data found in {self.config.db_sensor_table} table."
-            self.notifier.send(message)
-            self.logger.error(message)
+            self._notify_freshness_problem_after_delay(
+                now,
+                f"No data found in {self.config.db_sensor_table} table.",
+            )
             return
 
         if isinstance(latest_timestamp, str):
@@ -184,14 +199,38 @@ class IngestionService:
         else:
             latest_dt = latest_timestamp
 
-        if now - latest_dt > timedelta(seconds=self.config.freshness_threshold_seconds):
-            minutes = int(self.config.freshness_threshold_seconds / 60)
+        threshold = timedelta(seconds=self.config.notification_threshold_seconds)
+        if now - latest_dt > threshold:
+            self._freshness_problem_since = latest_dt + threshold
             message = (
                 "No temperature and humidity data found within the last "
-                f"{minutes} minute(s)."
+                f"{int(self.config.notification_threshold_seconds / 60)} minute(s)."
             )
+            self._send_freshness_problem_once(message)
+            return
+
+        if self._freshness_notified:
+            message = "Sensor database fresh again."
             self.notifier.send(message)
-            self.logger.error(message)
+            self.logger.info(message)
+        self._freshness_problem_since = None
+        self._freshness_notified = False
+
+    def _notify_freshness_problem_after_delay(self, now: datetime, message: str) -> None:
+        if self._freshness_problem_since is None:
+            self._freshness_problem_since = now
+        if now - self._freshness_problem_since < timedelta(
+            seconds=self.config.notification_threshold_seconds
+        ):
+            return
+        self._send_freshness_problem_once(message)
+
+    def _send_freshness_problem_once(self, message: str) -> None:
+        if self._freshness_notified:
+            return
+        self._freshness_notified = True
+        self.notifier.send(message)
+        self.logger.error(message)
 
 
 def configure_logging(level: str) -> None:

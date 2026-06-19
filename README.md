@@ -9,6 +9,7 @@ The current implementation is configured for shadow-table migration:
 - MariaDB tables: `sensor_data_mqtt_shadow`, `alarms_mqtt_shadow`
 - Write interval: 5 minutes
 - Write policy: latest valid reading per room per interval
+- ntfy data-health notifications wait 15 minutes by default
 - Extra MQTT-only measurement: `rssi`, stored as nullable `DOUBLE`
 - Insert timestamps use MariaDB server time via `SELECT NOW()`
 
@@ -41,6 +42,16 @@ SEND_NOTIFICATIONS=false
 DB_SENSOR_TABLE=sensor_data_mqtt_shadow
 DB_ALARMS_TABLE=alarms_mqtt_shadow
 ```
+
+Timing settings are independent:
+
+```text
+WRITE_INTERVAL_SECONDS=300
+READING_MAX_AGE_SECONDS=300
+NOTIFICATION_THRESHOLD_SECONDS=900
+```
+
+`READING_MAX_AGE_SECONDS` controls whether a room is included in the next database batch. `NOTIFICATION_THRESHOLD_SECONDS` controls when ntfy is notified about missing-room or stale-database conditions.
 
 ## Run Locally
 
@@ -101,7 +112,7 @@ Check that recent batches have all six rooms:
 
 ```sql
 SELECT timestamp, COUNT(*) AS rows_per_batch
-FROM sensor_data_mqtt_shadow
+FROM sensor_data
 GROUP BY timestamp
 ORDER BY timestamp DESC
 LIMIT 20;
@@ -111,8 +122,8 @@ Inspect the latest readings:
 
 ```sql
 SELECT room, device_address, device_type, temperature, humidity, battery_level, rssi, timestamp
-FROM sensor_data_mqtt_shadow
-WHERE timestamp = (SELECT MAX(timestamp) FROM sensor_data_mqtt_shadow)
+FROM sensor_data
+WHERE timestamp = (SELECT MAX(timestamp) FROM sensor_data)
 ORDER BY room;
 ```
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta
 from typing import Protocol
 
 from .models import AlertEvent, RoomConfig, SensorReading
@@ -86,3 +87,49 @@ class AlarmEvaluator:
             return AlertEvent(room, metric, new_state, recovery_message, False)
 
         return None
+
+
+class MissingDataNotifier:
+    def __init__(self, threshold_seconds: int, notifier: Notifier):
+        self.threshold = timedelta(seconds=threshold_seconds)
+        self.notifier = notifier
+        self._missing_since: dict[str, datetime] = {}
+        self._notified_rooms: frozenset[str] = frozenset()
+
+    def evaluate(
+        self,
+        missing_rooms: list[str],
+        reading_count: int,
+        now: datetime,
+    ) -> str | None:
+        missing_set = set(missing_rooms)
+        for room in missing_rooms:
+            self._missing_since.setdefault(room, now)
+        for room in list(self._missing_since):
+            if room not in missing_set:
+                del self._missing_since[room]
+
+        if not missing_rooms:
+            if self._notified_rooms:
+                self._notified_rooms = frozenset()
+                message = "Sensor data complete again."
+                self.notifier.send(message)
+                return message
+            return None
+
+        notification_rooms = frozenset(
+            room
+            for room in missing_rooms
+            if now - self._missing_since[room] >= self.threshold
+        )
+        if not notification_rooms or notification_rooms == self._notified_rooms:
+            return None
+
+        self._notified_rooms = notification_rooms
+        ordered_rooms = [room for room in missing_rooms if room in notification_rooms]
+        message = (
+            f"Data incomplete: only {reading_count} devices found. "
+            f"Missing data for {ordered_rooms}"
+        )
+        self.notifier.send(message)
+        return message

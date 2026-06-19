@@ -1,11 +1,11 @@
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from mqtt_mariadb_ingest.alerts import AlarmEvaluator  # noqa: E402
+from mqtt_mariadb_ingest.alerts import AlarmEvaluator, MissingDataNotifier  # noqa: E402
 from mqtt_mariadb_ingest.models import RoomConfig, SensorReading  # noqa: E402
 
 
@@ -103,6 +103,45 @@ class AlertTests(unittest.TestCase):
             self.notifier.messages[0],
             ("Humidity back to normal in Living Room: 48% 🥳", "Wohnung", False),
         )
+
+
+class MissingDataNotifierTests(unittest.TestCase):
+    def setUp(self):
+        self.notifier = FakeNotifier()
+        self.monitor = MissingDataNotifier(900, self.notifier)
+        self.now = datetime(2026, 6, 16, 12, 0, 0)
+
+    def test_missing_data_waits_for_threshold(self):
+        early = self.monitor.evaluate(["Bedroom"], 5, self.now)
+        threshold = self.monitor.evaluate(
+            ["Bedroom"],
+            5,
+            self.now + timedelta(seconds=900),
+        )
+        repeated = self.monitor.evaluate(
+            ["Bedroom"],
+            5,
+            self.now + timedelta(seconds=1200),
+        )
+
+        self.assertIsNone(early)
+        self.assertEqual(
+            threshold,
+            "Data incomplete: only 5 devices found. Missing data for ['Bedroom']",
+        )
+        self.assertIsNone(repeated)
+        self.assertEqual(len(self.notifier.messages), 1)
+
+    def test_missing_data_recovery_notifies_once(self):
+        self.monitor.evaluate(["Bedroom"], 5, self.now)
+        self.monitor.evaluate(["Bedroom"], 5, self.now + timedelta(seconds=900))
+
+        recovered = self.monitor.evaluate([], 6, self.now + timedelta(seconds=1200))
+        repeated_recovery = self.monitor.evaluate([], 6, self.now + timedelta(seconds=1500))
+
+        self.assertEqual(recovered, "Sensor data complete again.")
+        self.assertIsNone(repeated_recovery)
+        self.assertEqual(len(self.notifier.messages), 2)
 
 
 if __name__ == "__main__":

@@ -51,7 +51,7 @@ class AppConfig:
     room_config_path: str
     write_interval_seconds: int
     reading_max_age_seconds: int
-    freshness_threshold_seconds: int
+    notification_threshold_seconds: int
     battery_lower_limit: float
     db_sensor_table: str
     db_alarms_table: str
@@ -99,7 +99,7 @@ def load_config() -> AppConfig:
         room_config_path=room_config_path,
         write_interval_seconds=_env_int("WRITE_INTERVAL_SECONDS", 300),
         reading_max_age_seconds=_env_int("READING_MAX_AGE_SECONDS", 300),
-        freshness_threshold_seconds=_env_int("FRESHNESS_THRESHOLD_SECONDS", 900),
+        notification_threshold_seconds=_env_int("NOTIFICATION_THRESHOLD_SECONDS", 900),
         battery_lower_limit=float(os.environ.get("BATTERY_LOWER_LIMIT", "20")),
         db_sensor_table=os.environ.get("DB_SENSOR_TABLE", "sensor_data_mqtt_shadow"),
         db_alarms_table=os.environ.get("DB_ALARMS_TABLE", "alarms_mqtt_shadow"),
